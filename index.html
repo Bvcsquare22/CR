@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Doer — Interactive Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  @import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@500,700,800,900&display=swap');
+  :root { --bg:#0D0D0D;--cream:#F0EBE1;--gold:#D4A843;--card:#1A1A1A;--card2:#161616;--border:#2A2A2A;--body:#C5BFB2;--muted:#8A8376;--cr-red:#D32011;--rea-col:#F97316;--nnpc-col:#16A34A; }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--cream);font-family:'Cabinet Grotesk',-apple-system,sans-serif;}
+  #app{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden;}
+  #progress-bar{position:fixed;top:0;left:0;right:0;height:2px;background:#1A1A1A;z-index:200;}
+  #progress-fill{height:100%;background:var(--gold);transition:width 0.3s ease;}
+  #tap-hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:3px;color:var(--muted);z-index:200;animation:fade-pulse 2s infinite;white-space:nowrap;}
+  @keyframes fade-pulse{0%,100%{opacity:0.3;}50%{opacity:0.9;}}
+  #screen{position:fixed;inset:0;overflow:hidden;}
+  .scroll-body{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:60px;}
+  .scroll-body::-webkit-scrollbar{display:none;}
+  .status-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 20px 6px;font-size:12px;font-weight:700;color:var(--cream);background:var(--bg);position:sticky;top:0;z-index:10;}
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(13,13,13,0.97);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:10px 0 18px;z-index:50;}
+  .nav-item{display:flex;flex-direction:column;align-items:center;font-size:10px;color:var(--muted);gap:3px;}
+  .nav-item.active{color:var(--gold);}
+  .nav-item .icon{font-size:20px;}
+  .cta-btn{width:100%;padding:16px;background:var(--gold);color:var(--bg);border:none;border-radius:14px;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;cursor:pointer;animation:pulse-glow 2s infinite;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .cta-btn .arr{animation:nudge 1.2s infinite;display:inline-block;}
+  @keyframes pulse-glow{0%,100%{box-shadow:0 0 0 0 rgba(212,168,67,0.7),0 0 20px rgba(212,168,67,0.25);}50%{box-shadow:0 0 0 10px rgba(212,168,67,0),0 0 30px rgba(212,168,67,0.5);}}
+  @keyframes nudge{0%,100%{transform:translateX(0);}50%{transform:translateX(5px);}}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:10px;}
+  .lbl{font-size:10px;letter-spacing:2px;color:var(--muted);font-weight:700;margin-bottom:6px;}
+  .stat-block{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 6px;text-align:center;}
+  .stat-block .icon{font-size:18px;margin-bottom:4px;}
+  .stat-block .val{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--cream);line-height:1;}
+  .stat-block .slbl{font-size:9px;letter-spacing:1px;color:var(--muted);margin-top:3px;}
+  .detail-list{background:var(--card);border:1px solid var(--border);border-radius:14px;}
+  .detail-row{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--border);font-size:13px;}
+  .detail-row:last-child{border-bottom:none;}
+  .detail-row .dl{color:var(--muted);font-size:11px;letter-spacing:1px;text-transform:uppercase;}
+  .detail-row .dr{color:var(--cream);font-weight:600;text-align:right;}
+  .phase-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 30px;}
+  .phase-screen .gold-line{width:50px;height:2px;background:var(--gold);margin:0 auto 28px;position:relative;z-index:2;}
+  .phase-screen .gold-line.bot{margin:28px auto 0;}
+  .phase-screen h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(26px,7vw,40px);line-height:1.1;color:var(--cream);max-width:340px;position:relative;z-index:2;}
+  .phase-screen .tap-label{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:3px;color:var(--muted);animation:fade-pulse 2s infinite;z-index:2;white-space:nowrap;}
+  .qr-full{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px;text-align:center;overflow-y:auto;}
+  .qr-full .brand-label{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:4px;color:rgba(255,255,255,0.85);margin-bottom:8px;}
+  .qr-full h1{font-family:'Bebas Neue',sans-serif;font-size:52px;color:#fff;line-height:0.95;letter-spacing:1px;margin-bottom:4px;}
+  .qr-full .combo{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;color:rgba(255,255,255,0.9);margin-bottom:24px;}
+  .qr-box{width:200px;height:200px;background:#fff;border-radius:16px;padding:16px;margin-bottom:20px;display:flex;align-items:center;justify-content:center;}
+  .qr-box svg{width:100%;height:100%;}
+  .qr-code-text{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:8px;color:#fff;margin-bottom:14px;}
+  .qr-instruction{font-size:13px;color:rgba(255,255,255,0.9);line-height:1.5;margin-bottom:16px;max-width:280px;}
+  .qr-tags{display:flex;gap:10px;justify-content:center;margin-bottom:20px;}
+  .qr-tag{background:rgba(0,0,0,0.3);padding:5px 12px;border-radius:20px;font-size:11px;color:#fff;}
+  .qr-timer{background:rgba(0,0,0,0.4);border:2px solid rgba(255,255,255,0.3);border-radius:14px;padding:16px 28px;text-align:center;}
+  .qr-timer .tl{font-size:9px;letter-spacing:3px;color:rgba(255,255,255,0.7);}
+  .qr-timer .tv{font-family:'Bebas Neue',sans-serif;font-size:40px;color:#fff;letter-spacing:3px;margin-top:2px;}
+  .qr-tap-hint{margin-top:24px;font-size:10px;letter-spacing:3px;color:rgba(255,255,255,0.4);animation:fade-pulse 2s infinite;}
+  .join-wrap{display:flex;flex-direction:column;align-items:center;text-align:center;padding:30px 20px 20px;}
+  .join-check{width:74px;height:74px;border-radius:50%;background:rgba(74,222,128,0.15);border:2px solid #4ADE80;display:flex;align-items:center;justify-content:center;font-size:34px;margin-bottom:18px;}
+  .join-wrap h2{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:1px;color:var(--cream);margin-bottom:10px;}
+  .join-wrap .sub{font-size:14px;color:var(--body);line-height:1.55;max-width:290px;margin-bottom:24px;}
+  .lb-hero{background:var(--card);border:1px solid var(--gold);border-radius:14px;padding:14px 16px;text-align:center;margin-bottom:12px;}
+  .lb-hero .lt{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--gold);}
+  .lb-hero .ls{font-size:11px;color:var(--muted);margin-top:4px;}
+  .tab-row{display:flex;gap:6px;margin-bottom:12px;}
+  .tab{flex:1;padding:8px 0;background:var(--card);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:10px;letter-spacing:1px;color:var(--muted);}
+  .tab.active{background:rgba(212,168,67,0.12);border-color:var(--gold);color:var(--gold);}
+  .lb-list{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;}
+  .lb-row{display:flex;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);}
+  .lb-row:last-child{border-bottom:none;}
+  .lb-row.you{background:rgba(212,168,67,0.08);border-radius:8px;}
+  .lb-rank{width:28px;font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);text-align:center;flex-shrink:0;}
+  .lb-av{width:32px;height:32px;border-radius:50%;background:#444;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--cream);flex-shrink:0;}
+  .lb-av.gold{background:var(--gold);color:var(--bg);}
+  .lb-av.silver{background:#A0A0A0;color:var(--bg);}
+  .lb-av.bronze{background:#B8733D;color:var(--bg);}
+  .lb-name{flex:1;font-size:13px;color:var(--cream);}
+  .lb-name .you-tag{font-size:9px;color:var(--gold);margin-left:4px;letter-spacing:1px;}
+  .lb-steps{text-align:right;font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--cream);letter-spacing:1px;}
+  .lb-steps .sub{font-size:9px;color:var(--muted);display:block;letter-spacing:0;}
+  .completion-wrap{display:flex;flex-direction:column;align-items:center;text-align:center;padding:24px 20px 20px;}
+  .trophy-anim{font-size:64px;margin-bottom:10px;animation:float-trophy 2s ease-in-out infinite;}
+  @keyframes float-trophy{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+  .completion-wrap .clbl{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:5px;color:var(--gold);margin-bottom:8px;}
+  .completion-wrap h2{font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--cream);line-height:1;letter-spacing:1px;margin-bottom:12px;}
+  .completion-wrap .cnote{font-size:14px;color:var(--body);line-height:1.5;max-width:290px;margin-bottom:24px;}
+  .comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin-bottom:24px;}
+  .comp-block{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 12px;}
+  .comp-block .cn{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--cream);line-height:1;}
+  .comp-block .cl{font-size:9px;letter-spacing:1px;color:var(--muted);margin-top:5px;}
+  .reward-detail-hero{background:linear-gradient(150deg,var(--cr-red) 0%,#7A100A 100%);padding:28px 20px 24px;text-align:center;position:relative;overflow:hidden;}
+  .reward-detail-hero .bp{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:4px;color:rgba(255,255,255,0.85);margin-bottom:8px;}
+  .reward-detail-hero .rn{font-family:'Bebas Neue',sans-serif;font-size:36px;color:#fff;line-height:0.95;letter-spacing:1px;}
+  .warning-box{background:rgba(212,168,67,0.08);border:1px solid rgba(212,168,67,0.3);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:flex-start;}
+  .warning-box .wi{font-size:20px;flex-shrink:0;}
+  .warning-box .wt{font-size:12px;color:var(--body);line-height:1.55;}
+  .warning-box .wt strong{color:var(--gold);}
+  .ch2-hero{position:relative;width:100%;height:320px;overflow:hidden;}
+  .ch2-hero-grain{position:absolute;inset:0;opacity:0.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");background-size:128px 128px;}
+  .ch2-hero-arc{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);width:340px;height:340px;}
+  .ch2-hero-orb{position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:280px;height:280px;border-radius:50%;filter:blur(20px);}
+  .ch2-hero-top{position:absolute;top:52px;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:0 20px;z-index:10;}
+  .ch2-back-btn{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px);cursor:pointer;}
+  .ch2-sponsor-chip{display:flex;align-items:center;gap:8px;background:rgba(13,13,13,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:7px 14px 7px 7px;backdrop-filter:blur(16px);}
+  .ch2-sponsor-avatar{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#D32011,#7A100A);display:flex;align-items:center;justify-content:center;font-size:14px;}
+  .ch2-sponsor-text{font-size:12px;font-weight:800;color:rgba(255,255,255,0.9);}
+  .ch2-ring-wrap{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;z-index:5;}
+  .ch2-ring-svg{width:160px;height:160px;}
+  .ch2-ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+  .ch2-ring-steps{font-weight:900;font-size:28px;color:white;line-height:1;letter-spacing:-1px;}
+  .ch2-ring-label{font-size:10px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+  .ch2-ring-goal{font-size:11px;font-weight:700;color:var(--gold);margin-top:6px;}
+  .ch2-hero-bottom{position:absolute;bottom:0;left:0;right:0;padding:48px 20px 20px;background:linear-gradient(to top,#0D0D0D 55%,rgba(13,13,13,0.7) 80%,transparent 100%);z-index:6;}
+  .ch2-challenge-name{font-weight:900;font-size:24px;color:#FFF;line-height:1.0;letter-spacing:-0.5px;margin-bottom:8px;}
+  .ch2-chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .ch2-chip{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.75);}
+  .ch2-chip.gold{background:rgba(212,168,67,0.2);border-color:rgba(212,168,67,0.4);color:var(--gold);}
+  .ch2-body{padding:16px 16px 110px;}
+  .ch2-rank-spotlight{background:#1A1A1A;border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:16px;margin-bottom:12px;display:flex;align-items:center;overflow:hidden;position:relative;}
+  .ch2-rank-spotlight::before{content:"";position:absolute;top:0;left:0;bottom:0;width:4px;background:var(--gold);border-radius:4px 0 0 4px;}
+  .ch2-rank-main{flex:1;padding-left:12px;}
+  .ch2-rank-eyebrow{font-size:10px;font-weight:800;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;}
+  .ch2-rank-number{font-weight:900;font-size:42px;color:var(--gold);line-height:1;letter-spacing:-2px;}
+  .ch2-rank-sub{font-size:12px;font-weight:600;color:rgba(255,255,255,0.4);margin-top:2px;}
+  .ch2-rank-divider{width:1px;height:48px;background:rgba(255,255,255,0.1);margin:0 16px;}
+  .ch2-rank-right{text-align:right;}
+  .ch2-stat-val{font-weight:900;font-size:20px;color:white;line-height:1;}
+  .ch2-stat-label{font-size:10px;font-weight:700;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:0.8px;margin-top:2px;}
+  .ch2-stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;}
+  .ch2-stat-card{background:#1A1A1A;border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:12px 8px;text-align:center;}
+  .ch2-sv{font-weight:900;font-size:18px;color:var(--gold);line-height:1;margin-bottom:4px;}
+  .ch2-sl{font-size:9px;font-weight:700;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:0.7px;}
+  .ch2-reward-card{background:linear-gradient(135deg,#1C1608 0%,#181208 100%);border:1px solid rgba(212,168,67,0.22);border-radius:20px;padding:18px;margin-bottom:12px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;}
+  .ch2-reward-card::after{content:"F3C6";position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:52px;opacity:0.08;}
+  .ch2-reward-badge{width:48px;height:48px;border-radius:14px;background:rgba(212,168,67,0.12);border:1px solid rgba(212,168,67,0.22);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+  .ch2-reward-eyebrow{font-size:10px;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+  .ch2-reward-title{font-weight:900;font-size:17px;color:white;line-height:1.1;}
+  .ch2-reward-sub{font-size:12px;font-weight:500;color:rgba(255,255,255,0.4);margin-top:3px;}
+  .ch2-cta-btn{width:100%;height:58px;background:var(--gold);border:none;border-radius:18px;font-family:'Cabinet Grotesk',sans-serif;font-weight:900;font-size:17px;color:#0D0D0D;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(212,168,67,0.25);margin-bottom:12px;}
+  .ch2-cta-btn::before{content:"";position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent);animation:shimmer2 2.4s infinite;}
+  @keyframes shimmer2{0%{left:-100%;}100%{left:200%;}}
+  .ch2-tab-nav{display:flex;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:16px;}
+  .ch2-tab{flex:1;text-align:center;padding:12px 0;font-size:13px;font-weight:800;color:rgba(255,255,255,0.2);position:relative;cursor:pointer;}
+  .ch2-tab.active{color:var(--gold);}
+  .ch2-tab.active::after{content:"";position:absolute;bottom:-1px;left:25%;right:25%;height:2px;background:var(--gold);border-radius:2px;}
+  .ch2-desc-block{background:#1A1A1A;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:18px;margin-bottom:12px;}
+  .ch2-desc-text{font-size:13px;font-weight:500;color:rgba(255,255,255,0.6);line-height:1.65;}
+  .ch2-detail-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .ch2-detail-tile{background:#1A1A1A;border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:14px 16px;}
+  .ch2-dt-label{font-size:10px;font-weight:800;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+  .ch2-dt-value{font-size:14px;font-weight:900;color:white;}
+  .live-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;letter-spacing:2px;color:#4ADE80;font-weight:700;margin-left:auto;}
+  .live-dot{width:6px;height:6px;background:#4ADE80;border-radius:50%;animation:live-pulse 1.5s infinite;}
+  @keyframes live-pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+  .battle-sponsor-bar{display:flex;align-items:center;gap:10px;padding:8px 20px;background:var(--card);border-bottom:1px solid var(--border);}
+  .battle-sponsor-bar .slbl{font-size:10px;letter-spacing:1px;color:var(--muted);}
+  .battle-sponsor-bar .sname{font-size:12px;font-weight:700;color:var(--cream);}
+  .battle-title{text-align:center;padding:14px 20px 10px;}
+  .battle-title h2{font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--cream);letter-spacing:1px;margin-bottom:4px;}
+  .battle-title .bsub{font-size:11px;color:var(--muted);line-height:1.4;max-width:300px;margin:0 auto;}
+  .your-contrib{background:linear-gradient(135deg,rgba(212,168,67,0.15),rgba(212,168,67,0.05));border:1px solid rgba(212,168,67,0.4);border-radius:14px;padding:12px 14px;margin:0 20px 12px;display:flex;gap:12px;align-items:center;}
+  .your-contrib .yav{width:36px;height:36px;background:var(--gold);color:var(--bg);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;flex-shrink:0;}
+  .your-contrib .yt{flex:1;}
+  .your-contrib .yt .ytop{font-size:9px;letter-spacing:2px;color:var(--gold);font-weight:700;}
+  .your-contrib .yt .ybot{font-size:12px;color:var(--cream);margin-top:3px;line-height:1.35;}
+  .your-contrib .yt .ybot strong{color:var(--gold);}
+  .vs-panel{background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:16px;margin:0 20px 12px;}
+  .vs-teams-row{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin-bottom:14px;}
+  .team-block{text-align:center;}
+  .team-logo-big{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;overflow:hidden;}
+  .team-logo-big svg{width:100%;height:100%;}
+  .team-block .tname{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--cream);letter-spacing:1px;}
+  .team-block .tmembers{font-size:10px;color:var(--muted);margin-top:2px;}
+  .vs-txt{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--muted);text-align:center;}
+  .step-counts-row{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin-bottom:12px;}
+  .scb{text-align:center;}
+  .scb .sn{font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1;}
+  .scb .sl{font-size:9px;letter-spacing:2px;color:var(--muted);margin-top:4px;}
+  .leading-pill{background:rgba(249,115,22,0.15);border:1px solid #F97316;padding:6px 10px;border-radius:8px;font-size:9px;letter-spacing:1px;color:#F97316;font-weight:700;text-align:center;white-space:nowrap;}
+  .battle-bar{height:8px;background:var(--nnpc-col);border-radius:4px;overflow:hidden;}
+  .battle-bar .bf{height:100%;background:var(--rea-col);border-radius:4px;width:53%;}
+  .prize-block{background:var(--card);border:1px solid var(--gold);border-radius:14px;padding:14px 16px;margin:0 20px 12px;}
+  .prize-block .plbl{font-size:10px;letter-spacing:2px;color:var(--gold);font-weight:700;margin-bottom:10px;}
+  .prize-item{display:flex;gap:10px;align-items:flex-start;padding:5px 0;font-size:13px;color:var(--cream);line-height:1.4;}
+  .prize-item .pck{color:var(--gold);flex-shrink:0;font-weight:700;}
+  .battle-meta-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 20px 12px;}
+  .bm-block{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;}
+  .bm-block .bnum{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--cream);}
+  .bm-block .blbl{font-size:9px;letter-spacing:1px;color:var(--muted);margin-top:2px;}
+  .battle-lb{background:var(--card);border:1px solid var(--border);border-radius:14px;margin:0 20px 12px;}
+  .battle-lb .blh{display:flex;justify-content:space-between;align-items:center;padding:12px 14px 8px;border-bottom:1px solid var(--border);}
+  .battle-lb .blh .blt{font-size:10px;letter-spacing:2px;color:var(--muted);font-weight:700;}
+  .battle-lb .blh .bla{font-size:10px;color:var(--gold);}
+  .battle-lb-row{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);}
+  .battle-lb-row:last-child{border-bottom:none;}
+  .battle-pill{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700;letter-spacing:1px;flex-shrink:0;}
+  .battle-pill.rea{background:rgba(249,115,22,0.2);color:#F97316;}
+  .battle-pill.nnpc{background:rgba(22,163,74,0.2);color:#16A34A;}
+  .blr-name{flex:1;font-size:12px;color:var(--cream);}
+  .blr-name .blrsub{font-size:10px;color:var(--muted);margin-top:1px;}
+  .blr-steps{font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--cream);letter-spacing:1px;}
+  .all-battles-hdr{padding:16px 20px 10px;}
+  .all-battles-hdr .abt{font-size:10px;letter-spacing:3px;color:var(--gold);font-weight:700;margin-bottom:4px;}
+  .all-battles-hdr h2{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--cream);letter-spacing:1px;margin-bottom:6px;}
+  .all-battles-hdr .scale-line{font-size:12px;font-style:italic;color:var(--gold);}
+  .battle-card-item{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin:0 20px 10px;}
+  .bc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .bc-teams-logos{display:flex;align-items:center;gap:8px;}
+  .bc-logo{width:30px;height:30px;border-radius:8px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .bc-logo svg{width:100%;height:100%;}
+  .bc-vs{font-size:10px;color:var(--muted);font-weight:700;}
+  .bc-teams-names{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--cream);letter-spacing:1px;margin-left:8px;}
+  .bc-live{display:flex;align-items:center;gap:4px;font-size:9px;color:#4ADE80;letter-spacing:1px;font-weight:700;}
+  .bc-live::before{content:"";width:5px;height:5px;background:#4ADE80;border-radius:50%;animation:live-pulse 1.5s infinite;}
+  .bc-sponsor{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .bc-sponsor .spl{font-size:10px;color:var(--muted);}
+  .bc-sponsor-logo{display:flex;align-items:center;gap:6px;}
+  .bc-sponsor-icon{width:20px;height:20px;border-radius:5px;overflow:hidden;flex-shrink:0;}
+  .bc-sponsor-icon svg{width:100%;height:100%;}
+  .bc-sponsor-name{font-size:12px;font-weight:700;color:var(--cream);}
+  .bc-score{display:flex;justify-content:space-between;align-items:center;}
+  .bc-score .bcs-lead{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--gold);}
+  .bc-score .bcs-days{font-size:11px;color:var(--muted);}
+  .cta-full{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 32px;}
+  .cta-full .cta-wordmark{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:6px;color:var(--gold);opacity:0.6;margin-bottom:32px;}
+  .cta-full .gold-line{width:44px;height:2px;background:var(--gold);margin:0 auto 32px;}
+  .cta-full .gold-line.b{margin:32px auto 36px;}
+  .cta-full h1{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--cream);line-height:1.2;letter-spacing:1px;margin-bottom:20px;max-width:340px;}
+  .cta-full .mistplay-line{font-size:14px;color:var(--body);line-height:1.6;max-width:320px;margin-bottom:10px;}
+  .cta-full .mistplay-line strong{color:var(--gold);}
+  .replay-btn{margin-top:36px;padding:14px 32px;background:transparent;border:1px solid var(--gold);color:var(--gold);border-radius:12px;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;cursor:pointer;}
+  .home-content{padding:4px 16px 100px;overflow-y:auto;}
+  .home-content::-webkit-scrollbar{display:none;}
+  .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding:8px 4px;}
+  .hdr-left{display:flex;align-items:center;gap:14px;}
+  .h-avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#D4A843,#b8902f);display:flex;align-items:center;justify-content:center;color:#0D0D0D;font-weight:800;font-size:20px;}
+  .h-welcome{font-size:17px;color:white;font-weight:700;}
+  .h-sub{font-size:13px;color:#6b6b6b;font-weight:500;margin-top:2px;}
+  .h-bell{width:48px;height:48px;border-radius:14px;background:#1a1a1a;display:flex;align-items:center;justify-content:center;color:#888;position:relative;}
+  .h-bell-badge{position:absolute;top:-2px;right:-2px;background:#ff4444;color:white;font-size:11px;font-weight:800;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #000;}
+  .overview-card-h{background:#1a1a1a;border-radius:24px;padding:18px 20px;margin-bottom:16px;border:1px solid #222;}
+  .ov-label{font-size:14px;color:#888;font-weight:500;margin-bottom:12px;}
+  .ov-divider{height:1px;background:#2a2a2a;margin-bottom:16px;}
+  .ov-challenge-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .ov-icon-box{width:52px;height:52px;border-radius:14px;background:#0f0f0f;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+  .ov-info{flex:1;min-width:0;}
+  .ov-title{font-size:14px;font-weight:700;color:white;line-height:1.3;margin-bottom:2px;}
+  .ov-day{font-size:12px;color:#888;font-weight:500;}
+  .ov-day strong{color:#D4A843;}
+  .ov-progress-bar-bg{height:4px;background:#2a2a2a;border-radius:2px;margin-bottom:8px;}
+  .ov-progress-bar-fill{height:100%;background:#D4A843;border-radius:2px;}
+  .ov-progress-meta{display:flex;justify-content:space-between;font-size:11px;color:#888;font-weight:500;margin-bottom:14px;}
+  .daily-block-h{background:#1a1a1a;border-radius:24px;padding:18px 18px 20px;margin-bottom:16px;border:1px solid #222;position:relative;overflow:hidden;}
+  .streak-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:0 4px;}
+  .streak-icon-bg-h{width:52px;height:52px;border-radius:16px;background:rgba(212,168,67,0.1);display:flex;align-items:center;justify-content:center;border:1px solid rgba(212,168,67,0.2);}
+  .streak-num-h{font-family:'Bebas Neue',sans-serif;font-size:32px;color:#D4A843;line-height:1;}
+  .streak-lbl-top{font-size:11px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;}
+  .streak-lbl-days{font-size:14px;color:white;font-weight:700;}
+  .skip-pill-h{display:inline-flex;align-items:center;gap:6px;background:#0f0f0f;border:1px solid #2a2a2a;padding:6px 10px;border-radius:10px;font-size:11px;color:#888;font-weight:600;}
+  .skip-dots-h{display:flex;gap:3px;}
+  .skip-dot-h{width:6px;height:6px;border-radius:50%;background:#D4A843;}
+  .block-div{height:1px;background:linear-gradient(90deg,transparent,#2a2a2a 20%,#2a2a2a 80%,transparent);margin-bottom:14px;}
+  .ch-subhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:0 4px;}
+  .ch-title{font-size:15px;color:white;font-weight:800;}
+  .live-pill-h{display:inline-flex;align-items:center;gap:5px;background:rgba(212,168,67,0.12);padding:3px 7px;border-radius:5px;font-family:'Bebas Neue',sans-serif;font-size:9px;color:#D4A843;letter-spacing:1.2px;}
+  .live-dot-h{width:5px;height:5px;background:#D4A843;border-radius:50%;animation:fade-pulse 2s infinite;}
+  .resets-txt{font-size:11px;color:#6b6b6b;font-weight:500;}
+  .daily-scroll-h{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -18px;padding:2px 18px;}
+  .daily-scroll-h::-webkit-scrollbar{display:none;}
+  .daily-card-h{background:#0f0f0f;border-radius:18px;padding:14px;border:1px solid #222;flex-shrink:0;width:158px;scroll-snap-align:start;display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden;}
+  .daily-card-h.featured{background:linear-gradient(160deg,#1f1a12,#15110a);border:1px solid rgba(212,168,67,0.35);}
+  .featured-tag-h{position:absolute;top:10px;right:10px;font-family:'Bebas Neue',sans-serif;font-size:9px;color:#D4A843;letter-spacing:1.5px;}
+  .daily-dist{font-family:'Bebas Neue',sans-serif;font-size:38px;color:white;line-height:0.9;}
+  .daily-card-h.featured .daily-dist{color:#D4A843;}
+  .daily-unit-h{font-size:10px;color:#6b6b6b;font-weight:700;letter-spacing:1.5px;}
+  .daily-meta-h{font-size:10px;color:#888;font-weight:500;line-height:1.4;}
+  .daily-meta-h strong{color:#D4A843;font-weight:800;}
+  .start-btn-h{background:white;color:#0D0D0D;border:none;padding:10px;border-radius:10px;font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:12px;cursor:pointer;width:100%;text-transform:uppercase;}
+  .daily-card-h.featured .start-btn-h{background:#D4A843;}
+  .section-hdr-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:0 4px;}
+  .section-h-txt{font-size:20px;color:white;font-weight:800;}
+  .see-all{font-size:13px;color:#D4A843;font-weight:600;}
+  .joined-empty-h{background:#1a1a1a;border-radius:18px;padding:18px;border:1px dashed #2a2a2a;text-align:center;color:#6b6b6b;font-size:13px;font-weight:500;margin-bottom:16px;}
+  .bottom-nav-h{position:fixed;bottom:0;left:0;right:0;height:76px;background:rgba(0,0,0,0.97);border-top:1px solid #1a1a1a;display:flex;justify-content:space-around;align-items:flex-start;padding-top:12px;z-index:50;}
+  .nav-item-h{display:flex;flex-direction:column;align-items:center;gap:4px;color:#555;font-size:11px;font-weight:600;}
+  .nav-item-h.active{color:#D4A843;}
+  .tracking-content-h{flex:1;display:flex;flex-direction:column;align-items:center;padding:0 24px 28px;position:relative;}
+  .tracking-pill-h{display:inline-flex;align-items:center;gap:8px;background:#0a1a05;border:1.5px solid #4ade80;padding:8px 16px;border-radius:24px;margin-top:8px;margin-bottom:12px;box-shadow:0 0 20px rgba(74,222,128,0.3);}
+  .tracking-dot-h{width:8px;height:8px;border-radius:50%;background:#4ade80;animation:fade-pulse 1.5s infinite;}
+  .tracking-text-h{font-family:'Bebas Neue',sans-serif;color:#4ade80;letter-spacing:3px;font-size:14px;}
+  .goal-pill-h{display:inline-flex;align-items:center;gap:6px;background:#1a1a1a;border:1px solid #2a2a2a;padding:7px 14px;border-radius:20px;margin-bottom:12px;}
+  .goal-pill-h .gpl{font-size:11px;color:#888;font-weight:600;letter-spacing:1px;text-transform:uppercase;}
+  .goal-pill-h .gpv{font-family:'Bebas Neue',sans-serif;font-size:14px;color:white;letter-spacing:1.5px;}
+  .dur-label{font-family:'Bebas Neue',sans-serif;font-size:12px;color:#555;letter-spacing:4px;margin-bottom:6px;}
+  .dur-time{font-family:'JetBrains Mono',monospace;font-size:48px;color:white;font-weight:500;letter-spacing:-2px;margin-bottom:18px;}
+  .ring-container-h{position:relative;width:240px;height:240px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;}
+  .ring-svg-h{position:absolute;width:100%;height:100%;transform:rotate(-90deg);}
+  .ring-bg-h{fill:none;stroke:#1a1a1a;stroke-width:8;}
+  .ring-prog-h{fill:none;stroke:#D4A843;stroke-width:8;stroke-linecap:round;stroke-dasharray:691.15;stroke-dashoffset:519;transition:stroke-dashoffset 0.3s ease;filter:drop-shadow(0 0 8px rgba(212,168,67,0.4));}
+  .steps-content-h{display:flex;flex-direction:column;align-items:center;z-index:2;}
+  .steps-lbl{font-family:'Bebas Neue',sans-serif;font-size:13px;color:#555;letter-spacing:4px;margin-bottom:4px;}
+  .steps-num{font-family:'Bebas Neue',sans-serif;font-size:64px;color:#D4A843;line-height:0.9;letter-spacing:1px;}
+  .steps-of-goal-h{font-size:11px;color:#555;font-weight:500;margin-top:6px;}
+  .stats-row-h{display:flex;gap:10px;margin-bottom:16px;}
+  .stat-pill-h{background:#0f0f0f;border:1px solid #1f1f1f;padding:9px 14px;border-radius:12px;display:flex;align-items:center;gap:8px;}
+  .stat-icon-h{color:#888;}
+  .stat-val{font-size:15px;color:white;font-weight:700;}
+  .stat-unit-h{font-size:10px;color:#888;font-weight:500;}
+  .pause-btn-h{background:#D4A843;color:#0D0D0D;border:none;padding:16px;border-radius:16px;font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:16px;cursor:pointer;width:100%;max-width:340px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 10px 30px rgba(212,168,67,0.25);margin-top:auto;}
+  .ff-btn-h{margin-top:10px;width:100%;max-width:340px;padding:12px;background:transparent;border:1px solid #2a2a2a;border-radius:12px;color:#888;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;font-size:13px;cursor:pointer;}
+  .reward-popup-screen{position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+  .rp-inner{background:#111;border-radius:28px;padding:28px 24px 24px;max-width:360px;width:100%;text-align:center;}
+  .rp-trophy{font-size:52px;margin-bottom:6px;}
+  .rp-label{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:5px;color:#D4A843;margin-bottom:10px;}
+  .rp-headline{font-size:28px;font-weight:800;color:white;line-height:1.1;margin-bottom:4px;}
+  .rp-headline span{color:#D4A843;}
+  .rp-sub{font-size:13px;color:#888;font-weight:500;line-height:1.5;margin-bottom:20px;}
+  .rp-steps-row{background:#1a1a1a;border-radius:14px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+  .rp-steps-lbl{font-size:12px;color:#888;font-weight:500;}
+  .rp-steps-val{font-size:14px;font-weight:700;color:#D4A843;}
+  .rp-reward-card{border-radius:16px;padding:18px 18px 16px;margin-bottom:18px;text-align:left;position:relative;overflow:hidden;background:#006491;}
+  .rp-rc-brand{font-size:13px;color:rgba(255,255,255,0.75);font-weight:600;margin-bottom:4px;}
+  .rp-rc-name{font-size:26px;font-weight:800;color:white;line-height:1.1;margin-bottom:4px;}
+  .rp-rc-valid{font-size:11px;color:rgba(255,255,255,0.6);font-weight:500;}
+  .rp-rc-code-badge{position:absolute;top:50%;right:18px;transform:translateY(-50%);background:white;border-radius:10px;padding:6px 12px;text-align:center;}
+  .rp-rc-code-lbl{font-size:9px;color:#888;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;}
+  .rp-rc-code-val{font-family:'Bebas Neue',sans-serif;font-size:16px;color:#006491;letter-spacing:2px;}
+  .rp-rc-circle1{position:absolute;top:-30px;left:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.07);}
+  .rp-rc-circle2{position:absolute;bottom:-40px;right:80px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.05);}
+  .rp-claim-btn{width:100%;padding:16px;background:#D4A843;color:#0D0D0D;border:none;border-radius:14px;font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:16px;cursor:pointer;margin-bottom:10px;animation:pulse-glow 2s infinite;}
+  .rp-view-link{font-size:13px;color:#888;font-weight:500;cursor:pointer;}
+  .closing-screen{position:fixed;inset:0;background:#0D0D0D;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;cursor:pointer;}
+  .closing-top-line{width:40px;height:2px;background:var(--gold);border-radius:2px;margin-bottom:28px;}
+  .closing-eyebrow{font-size:10px;font-weight:800;letter-spacing:3px;color:var(--gold);margin-bottom:20px;text-transform:uppercase;}
+  .closing-headline{font-size:22px;font-weight:900;color:#FFF;line-height:1.45;margin-bottom:28px;letter-spacing:-0.3px;}
+  .closing-headline span{color:var(--gold);}
+  .closing-stat-block{background:rgba(212,168,67,0.08);border:1px solid rgba(212,168,67,0.2);border-radius:16px;padding:16px 24px;margin-bottom:28px;width:100%;max-width:300px;}
+  .closing-stat-label{font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;}
+  .closing-stat-number{font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--gold);line-height:1;letter-spacing:1px;}
+  .closing-stat-desc{font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px;line-height:1.4;}
+  .closing-bottom-line{width:40px;height:2px;background:var(--gold);border-radius:2px;margin-bottom:20px;}
+  .closing-tap{font-size:10px;letter-spacing:3px;color:var(--muted);animation:fade-pulse 2s infinite;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+  <div id="screen"></div>
+  <div id="tap-hint">TAP ANYWHERE TO CONTINUE</div>
+</div>
+<script>
+const LOGOS = {
+  rea: `<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="56" rx="12" fill="#F97316"/><text x="28" y="36" font-family="Arial Black,sans-serif" font-size="14" font-weight="900" fill="white" text-anchor="middle">REA</text></svg>`,
+  nnpc: `<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="56" rx="12" fill="#16A34A"/><text x="28" y="36" font-family="Arial Black,sans-serif" font-size="11" font-weight="900" fill="white" text-anchor="middle">NNPC</text></svg>`,
+  access_bank: `<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="56" rx="12" fill="#0066B3"/><polygon points="28,8 48,38 8,38" fill="none" stroke="white" stroke-width="4"/><text x="28" y="52" font-family="Arial,sans-serif" font-size="8" font-weight="700" fill="white" text-anchor="middle">ACCESS</text></svg>`,
+  andela: `<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="56" rx="12" fill="#0A0A0A"/><rect x="4" y="4" width="48" height="48" rx="10" fill="none" stroke="#6C47FF" stroke-width="2"/><text x="28" y="36" font-family="Arial Black,sans-serif" font-size="22" font-weight="900" fill="#6C47FF" text-anchor="middle">A</text></svg>`,
+  flutterwave: `<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="56" rx="12" fill="#FF6600"/><path d="M10,36 Q20,16 28,28 Q36,40 46,20" stroke="white" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M10,44 Q20,24 28,36 Q36,48 46,28" stroke="rgba(255,255,255,0.5)" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`,
+  mtn: `<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="56" rx="12" fill="#FFCC00"/><text x="28" y="36" font-family="Arial Black,sans-serif" font-size="16" font-weight="900" fill="#000" text-anchor="middle">MTN</text></svg>`,
+  google: `<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="56" rx="12" fill="#fff"/><text x="14" y="38" font-family="Arial,sans-serif" font-size="32" font-weight="900" fill="#4285F4">G</text></svg>`,
+  microsoft: `<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="56" rx="12" fill="#fff"/><rect x="10" y="10" width="16" height="16" rx="1" fill="#F25022"/><rect x="30" y="10" width="16" height="16" rx="1" fill="#7FBA00"/><rect x="10" y="30" width="16" height="16" rx="1" fill="#00A4EF"/><rect x="30" y="30" width="16" height="16" rx="1" fill="#FFB900"/></svg>`,
+  spotify: `<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="56" rx="28" fill="#1DB954"/><path d="M14,24 Q28,18 42,22" stroke="white" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M16,32 Q28,27 40,30" stroke="white" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M18,40 Q28,36 38,38" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`,
+  abuja_walkers: `<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="56" rx="12" fill="#D4A843"/><circle cx="28" cy="14" r="6" fill="white"/><path d="M22,22 L16,42 M22,22 L28,36 L34,22 M34,22 L40,42" stroke="white" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  lagos_walkers: `<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="56" rx="12" fill="#7C3AED"/><circle cx="28" cy="14" r="6" fill="white"/><path d="M22,22 L16,42 M22,22 L28,36 L34,22 M34,22 L40,42" stroke="white" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  cocacola: `<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="56" rx="12" fill="#F40009"/><text x="28" y="26" font-family="Georgia,serif" font-size="9" font-weight="900" fill="white" text-anchor="middle">Coca</text><text x="28" y="44" font-family="Georgia,serif" font-size="9" font-weight="900" fill="white" text-anchor="middle">Cola</text></svg>`,
+  dominos: `<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="56" rx="12" fill="#006491"/><polygon points="28,6 50,18 50,38 28,50 6,38 6,18" fill="#E31837"/><polygon points="28,6 50,18 28,30 6,18" fill="#006491"/><circle cx="19" cy="20" r="3" fill="white"/><circle cx="28" cy="40" r="3" fill="white"/><circle cx="37" cy="40" r="3" fill="white"/></svg>`
+};
+
+const SCREENS = [
+  { id: 'disclaimer', type: 'disclaimer' },
+  { id: 'home', type: 'app', nav: 'home' },
+  { id: 'challenge', type: 'app', nav: 'challenges' },
+  { id: 'join', type: 'app', nav: 'challenges' },
+  { id: 'tracking', type: 'app', nav: 'challenges' },
+  { id: 'leaderboard', type: 'app', nav: 'challenges' },
+  { id: 'completion', type: 'app', nav: 'challenges' },
+  { id: 'reward_popup', type: 'reward_popup' },
+  { id: 'rewards', type: 'app', nav: 'rewards' },
+  { id: 'reward_detail', type: 'app', nav: 'rewards' },
+  { id: 'qr', type: 'qr' },
+  { id: 'brand_dashboard', type: 'app', nav: 'home' },
+  { id: 'phase_company', type: 'phase', text: 'Companies are constantly looking for ways for employees to bond through corporate wellness. On Doer, organizations can run challenges where departments compete. The winning department gets a day off or dinner. This reduces sick days and promotes team bonding.' },
+  { id: 'battle', type: 'app', nav: 'groups' },
+  { id: 'allbattles', type: 'app', nav: 'groups' },
+  { id: 'closing_insight', type: 'closing_insight' },
+  { id: 'cta', type: 'cta' }
+];
+
+let idx = 0;
+let _activeTimerInt = null;
+let _activeStepInt = null;
+function _clearTrackingIntervals() {
+  if (_activeTimerInt) { clearInterval(_activeTimerInt); _activeTimerInt = null; }
+  if (_activeStepInt) { clearInterval(_activeStepInt); _activeStepInt = null; }
+}
+
+function updateProgress() {
+  const pct = ((idx + 1) / SCREENS.length) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+function render() {
+  _clearTrackingIntervals();
+  updateProgress();
+  const s = SCREENS[idx];
+  const screen = document.getElementById('screen');
+  const hint = document.getElementById('tap-hint');
+  hint.style.display = ['qr','cta','reward_popup','closing_insight'].includes(s.id) ? 'none' : 'block';
+  if (s.type === 'disclaimer') screen.innerHTML = renderDisclaimer();
+  else if (s.type === 'qr') screen.innerHTML = renderQR();
+  else if (s.type === 'reward_popup') screen.innerHTML = renderRewardPopup();
+  else if (s.type === 'closing_insight') screen.innerHTML = renderClosingInsight();
+  else if (s.type === 'cta') screen.innerHTML = renderCTA();
+  else if (s.type === 'phase') screen.innerHTML = renderPhase(s.text);
+  else if (s.type === 'app') screen.innerHTML = renderApp(s.id, s.nav);
+  const replay = document.getElementById('replayBtn');
+  if (replay) replay.addEventListener('click', e => { e.stopPropagation(); idx = 0; render(); });
+  if (s.id === 'tracking') initTracking();
+}
+
+function initTracking() {
+  var timerRunning = false, timerSecs = 0, timerInt = null, stepInt = null;
+  var currentSteps = 0, TARGET = 35241, CIRC = 691.15;
+  var btn = document.getElementById('startTrackingBtn');
+  var lbl = document.getElementById('startBtnLabel');
+  var ico = document.getElementById('startBtnIcon');
+  if (!btn) return;
+  function startTimer() {
+    timerRunning = true;
+    ico.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+    lbl.textContent = 'Pause';
+    _activeTimerInt = timerInt = setInterval(function() {
+      timerSecs++;
+      var h=Math.floor(timerSecs/3600), m=Math.floor((timerSecs%3600)/60), sc=timerSecs%60;
+      var d=document.getElementById('timer-display');
+      if(d) d.textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0');
+    }, 1000);
+    _activeStepInt = stepInt = setInterval(function() {
+      if(currentSteps>=TARGET){clearInterval(stepInt);return;}
+      currentSteps=Math.min(currentSteps+3+Math.floor(Math.random()*3),TARGET);
+      var sd=document.getElementById('step-display'); if(sd) sd.textContent=currentSteps.toLocaleString();
+      var spd=document.getElementById('speed-display'); if(spd) spd.textContent=['3.2','3.5','3.8','4.1','4.4','3.9'][Math.floor(Math.random()*6)];
+      var ring=document.getElementById('ringProgress'); if(ring) ring.style.strokeDashoffset=CIRC*(1-Math.min(currentSteps/TARGET,1));
+      var dist=document.getElementById('dist-display'); if(dist) dist.textContent=(currentSteps*0.00078).toFixed(1);
+    }, 800);
+  }
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if(timerRunning){
+      timerRunning=false; clearInterval(timerInt); clearInterval(stepInt);
+      ico.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>';
+      lbl.textContent='Resume';
+    } else { startTimer(); }
+  });
+  var ff=document.getElementById('fastForwardBtn');
+  if(ff) ff.addEventListener('click',function(e){e.stopPropagation();_clearTrackingIntervals();next();});
+  setTimeout(function(){if(document.getElementById('startTrackingBtn')&&!timerRunning) startTimer();},600);
+}
+
+function next() { if (idx < SCREENS.length-1) { idx++; render(); } }
+function prev() { if (idx > 0) { idx--; render(); } }
+document.addEventListener('click', e => { if (!e.target.closest('#replayBtn')) next(); });
+document.addEventListener('keydown', e => {
+  if (e.key==='ArrowRight'||e.key===' ') { e.preventDefault(); next(); }
+  if (e.key==='ArrowLeft') { e.preventDefault(); prev(); }
+  if (e.key==='r'||e.key==='R') { idx=0; render(); }
+});
+
+function renderDisclaimer() {
+  return `<div style="position:fixed;inset:0;background:#0D0D0D;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 32px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:6px;color:var(--gold);opacity:0.7;margin-bottom:32px;">DOER</div>
+    <div style="width:44px;height:2px;background:var(--gold);margin:0 auto 32px;"></div>
+    <div style="font-size:11px;letter-spacing:3px;color:var(--muted);font-weight:700;margin-bottom:16px;">THIS IS A DEMO</div>
+    <h1 style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--cream);line-height:1.1;letter-spacing:1px;margin-bottom:20px;max-width:320px;">This is what Doer looks like at scale.</h1>
+    <p style="font-size:14px;color:var(--body);line-height:1.6;max-width:300px;margin-bottom:40px;">All brands, users, and step counts shown are illustrative of what Doer looks like with partners at scale.</p>
+    <div style="width:44px;height:2px;background:var(--gold);margin:0 auto 32px;"></div>
+    <div style="font-size:10px;letter-spacing:3px;color:var(--muted);animation:fade-pulse 2s infinite;">TAP ANYWHERE TO BEGIN</div>
+  </div>`;
+}
+
+function renderRewardPopup() {
+  return `<div class="reward-popup-screen">
+    <div class="rp-inner">
+      <div class="rp-trophy">🏆</div>
+      <div class="rp-label">CHALLENGE COMPLETE</div>
+      <div class="rp-headline">YOU'VE WON A<br/><span>SMALLIE PIZZA</span></div>
+      <div class="rp-sub">You completed the Domino's 7-Day Step Challenge. Your reward is ready.</div>
+      <div class="rp-steps-row"><span class="rp-steps-lbl">Steps completed</span><span class="rp-steps-val">35,241 steps · 7 days 🔥</span></div>
+      <div class="rp-reward-card">
+        <div class="rp-rc-circle1"></div><div class="rp-rc-circle2"></div>
+        <div class="rp-rc-brand">Domino's Pizza</div>
+        <div class="rp-rc-name">Smallie<br/>Pizza</div>
+        <div class="rp-rc-valid">Valid until Dec 31, 2026</div>
+        <div class="rp-rc-code-badge"><div class="rp-rc-code-lbl">Code</div><div class="rp-rc-code-val">DM-DOER</div></div>
+      </div>
+      <button class="rp-claim-btn" onclick="event.stopPropagation();next();">Claim My Smallie Pizza</button>
+      <div class="rp-view-link" onclick="event.stopPropagation();next();">View in Rewards tab</div>
+    </div>
+  </div>`;
+}
+
+function renderQR() {
+  return `<div class="qr-full" style="background:linear-gradient(160deg,#006491 0%,#004266 100%);">
+    <div class="brand-label">DOMINOS PIZZA</div>
+    <h1>SMALLIE PIZZA</h1>
+    <div class="combo">FREE. EARNED BY WALKING.</div>
+    <div class="qr-box">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="100" height="100" fill="#fff"/>
+        <g fill="#000">
+          <rect x="5" y="5" width="22" height="22"/><rect x="9" y="9" width="14" height="14" fill="#fff"/><rect x="13" y="13" width="6" height="6"/>
+          <rect x="73" y="5" width="22" height="22"/><rect x="77" y="9" width="14" height="14" fill="#fff"/><rect x="81" y="13" width="6" height="6"/>
+          <rect x="5" y="73" width="22" height="22"/><rect x="9" y="77" width="14" height="14" fill="#fff"/><rect x="13" y="81" width="6" height="6"/>
+          <rect x="32" y="7" width="5" height="5"/><rect x="41" y="7" width="5" height="5"/><rect x="50" y="7" width="5" height="5"/><rect x="59" y="7" width="5" height="5"/>
+          <rect x="32" y="16" width="5" height="5"/><rect x="45" y="16" width="5" height="5"/><rect x="54" y="16" width="5" height="5"/>
+          <rect x="5" y="32" width="5" height="5"/><rect x="14" y="32" width="5" height="5"/><rect x="32" y="32" width="5" height="5"/><rect x="50" y="32" width="5" height="5"/><rect x="72" y="32" width="5" height="5"/><rect x="90" y="32" width="5" height="5"/>
+          <rect x="5" y="41" width="5" height="5"/><rect x="32" y="41" width="5" height="5"/><rect x="45" y="41" width="5" height="5"/><rect x="72" y="41" width="5" height="5"/>
+          <rect x="9" y="50" width="5" height="5"/><rect x="36" y="50" width="5" height="5"/><rect x="50" y="50" width="5" height="5"/><rect x="90" y="50" width="5" height="5"/>
+          <rect x="5" y="59" width="5" height="5"/><rect x="36" y="59" width="5" height="5"/><rect x="63" y="59" width="5" height="5"/>
+          <rect x="32" y="68" width="5" height="5"/><rect x="54" y="68" width="5" height="5"/><rect x="77" y="68" width="5" height="5"/>
+          <rect x="32" y="77" width="5" height="5"/><rect x="59" y="77" width="5" height="5"/>
+          <rect x="36" y="86" width="5" height="5"/><rect x="59" y="86" width="5" height="5"/>
+        </g>
+      </svg>
+    </div>
+    <div class="qr-code-text">DM-47</div>
+    <div class="qr-instruction">Show this at any Domino's outlet to redeem. Or enter the code on the Domino's app for delivery.</div>
+    <div class="qr-tags"><div class="qr-tag">One-time use</div><div class="qr-tag">In-store or delivery</div></div>
+    <div class="qr-timer"><div class="tl">EXPIRES IN</div><div class="tv">10:00</div></div>
+    <div class="qr-tap-hint">TAP TO SEE HOW BRANDS USE DOER</div>
+  </div>`;
+}
+
+function renderClosingInsight() {
+  return `<div class="closing-screen">
+    <div class="closing-top-line"></div>
+    <div class="closing-eyebrow">Think about this</div>
+    <div class="closing-headline">
+      Imagine a user getting rewarded by a brand for their daily activity.<br/><br/>
+      This is not advertising. It is <span>embedding a brand into the daily lives of our users.</span><br/><br/>
+      And brands finally get engagement they can measure.
+    </div>
+    <div class="closing-stat-block">
+      <div class="closing-stat-label">Average Facebook and Instagram CTR</div>
+      <div class="closing-stat-number">0.90%</div>
+      <div class="closing-stat-desc">Source: WordStream, across all industries</div>
+    </div>
+    <div class="closing-bottom-line"></div>
+    <div class="closing-tap">TAP TO CONTINUE</div>
+  </div>`;
+}
+
+function renderPhase(text) {
+  return `<div class="phase-screen"><div class="gold-line"></div><h1>${text}</h1><div class="gold-line bot"></div><div class="tap-label">TAP ANYWHERE</div></div>`;
+}
+
+function renderCTA() {
+  return `<div class="cta-full">
+    <div class="cta-wordmark">DOER</div>
+    <div class="gold-line"></div>
+    <h1>Brands advertise by sponsoring challenges.<br/>Users build habits while giving brands visibility.</h1>
+    <div class="gold-line b"></div>
+    <div class="mistplay-line">Mistplay built a <strong>$200M business</strong> paying people to play games.<br/>We are building the same thing for physical activity.<br/><strong>And we have already started.</strong></div>
+    <button id="replayBtn" class="replay-btn">REPLAY DEMO</button>
+  </div>`;
+}
+
+function renderApp(screenId, activeNav) {
+  const body = APP_SCREENS[screenId]();
+  const noNav = ['allbattles','brand_dashboard'].includes(screenId);
+  const fullH = ['tracking','home'].includes(screenId);
+  return `<div style="position:fixed;inset:0;overflow:hidden;background:var(--bg);">
+    ${fullH ? '' : '<div class="scroll-body">'}
+    <div class="status-bar"><span style="margin-left:12px;">9:45</span><span style="margin-right:12px;">5G 79%</span></div>
+    ${body}
+    ${fullH ? '' : `<div style="height:${noNav?20:80}px;"></div>`}
+    ${fullH ? '' : '</div>'}
+    ${noNav ? '' : (fullH ? '' : renderNav(activeNav))}
+  </div>`;
+}
+
+function renderNav(active) {
+  const items=[{id:'home',icon:'🏠',label:'Home'},{id:'groups',icon:'👥',label:'Groups'},{id:'tracking',icon:'📊',label:'Tracking'},{id:'challenges',icon:'🏁',label:'Challenges'},{id:'profile',icon:'👤',label:'Profile'}];
+  return `<div class="bottom-nav">${items.map(i=>`<div class="nav-item ${i.id===active?'active':''}"><div class="icon">${i.icon}</div>${i.label}</div>`).join('')}</div>`;
+}
+
+const APP_SCREENS = {
+  home: () => `<div class="home-content">
+    <div class="hdr">
+      <div class="hdr-left"><div class="h-avatar">V</div><div><div class="h-welcome">Welcome, Victor</div><div class="h-sub">172 day streak</div></div></div>
+      <div class="h-bell"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="h-bell-badge">2</div></div>
+    </div>
+    <div class="overview-card-h">
+      <div class="ov-label">Overview</div><div class="ov-divider"></div>
+      <div class="ov-challenge-row">
+        <div class="ov-icon-box">${LOGOS.dominos}</div>
+        <div class="ov-info"><div class="ov-title">Walk 35,000 Steps in 7 Days with Domino's</div><div class="ov-day">Day 5, <strong>28,400 / 35,000 steps</strong></div></div>
+      </div>
+      <div class="ov-progress-bar-bg"><div class="ov-progress-bar-fill" style="width:81%;"></div></div>
+      <div class="ov-progress-meta"><span>Rank: 47 of 10,932</span><span>6,600 to go</span></div>
+      <button style="width:100%;padding:14px 16px;background:var(--gold);color:#0D0D0D;border:none;border-radius:14px;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;cursor:pointer;animation:pulse-glow 2s infinite;display:flex;align-items:center;justify-content:center;gap:8px;">JOIN CHALLENGE &#8594;</button>
+    </div>
+    <div class="daily-block-h">
+      <div class="streak-hdr">
+        <div style="display:flex;align-items:center;gap:14px;"><div class="streak-icon-bg-h"><span style="font-size:26px;">🔥</span></div><div><div class="streak-lbl-top">Current Streak</div><div style="display:flex;align-items:baseline;gap:6px;"><span class="streak-num-h">172</span><span class="streak-lbl-days">days</span></div></div></div>
+        <div class="skip-pill-h"><span>Skips</span><div class="skip-dots-h"><div class="skip-dot-h"></div><div class="skip-dot-h"></div></div></div>
+      </div>
+      <div class="block-div"></div>
+      <div class="ch-subhdr"><div style="display:flex;align-items:center;gap:8px;"><div class="ch-title">Today's Challenges</div><div class="live-pill-h"><span class="live-dot-h"></span><span>LIVE</span></div></div><div class="resets-txt">Resets at midnight</div></div>
+      <div class="daily-scroll-h">
+        <div class="daily-card-h"><div><div class="daily-dist">5K</div><div class="daily-unit-h">DAILY</div></div><div class="daily-meta-h"><strong>2,134</strong> walking</div><button class="start-btn-h">Start</button></div>
+        <div class="daily-card-h featured"><div class="featured-tag-h">POPULAR</div><div><div class="daily-dist">10K</div><div class="daily-unit-h">DAILY</div></div><div class="daily-meta-h"><strong>4,891</strong> walking</div><button class="start-btn-h">Start</button></div>
+        <div class="daily-card-h"><div><div class="daily-dist">15K</div><div class="daily-unit-h">DAILY</div></div><div class="daily-meta-h"><strong>812</strong> walking</div><button class="start-btn-h">Start</button></div>
+      </div>
+    </div>
+    <div class="section-hdr-row"><div class="section-h-txt">Joined Challenges</div><span class="see-all">See all</span></div>
+    <div class="joined-empty-h">Multi day challenges you join show up here</div>
+    <div class="section-hdr-row" style="margin-top:8px;"><div class="section-h-txt">Joined Groups</div><span class="see-all">See all</span></div>
+    <div style="background:#1a1a1a;border-radius:20px;padding:20px;border:1px solid #222;text-align:center;"><div style="color:#6b6b6b;font-size:13px;">No groups joined yet</div></div>
+  </div>
+  <div class="bottom-nav-h">
+    <div class="nav-item-h active"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 2 12h3v8h6v-6h2v6h6v-8h3z"/></svg><span>Home</span></div>
+    <div class="nav-item-h"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><circle cx="17" cy="7" r="3"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 14a4 4 0 0 1 4 4v3"/></svg><span>Groups</span></div>
+    <div class="nav-item-h"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20V10M9 20V4M15 20v-8M21 20v-4"/></svg><span>Tracking</span></div>
+    <div class="nav-item-h"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21V4l8 4 8-4v17"/></svg><span>Challenges</span></div>
+    <div class="nav-item-h"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Profile</span></div>
+  </div>`,
+
+  challenge: () => `<div class="ch2-hero">
+    <div class="ch2-hero-bg" style="background:radial-gradient(ellipse 60% 50% at 20% 10%,rgba(227,24,55,0.35) 0%,transparent 60%),linear-gradient(160deg,#1A0608 0%,#0A0F14 50%,#080808 100%);"></div>
+    <div class="ch2-hero-top">
+      <div class="ch2-back-btn"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12.5L5.5 8L10 3.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="ch2-sponsor-chip"><div class="ch2-sponsor-avatar">🍕</div><span class="ch2-sponsor-text">Domino's Pizza</span></div>
+    </div>
+    <div class="ch2-ring-wrap">
+      <div style="position:relative;width:160px;height:160px;">
+        <svg class="ch2-ring-svg" viewBox="0 0 160 160"><circle cx="80" cy="80" r="66" stroke="rgba(255,255,255,0.08)" stroke-width="10" fill="none"/><circle cx="80" cy="80" r="66" stroke="#E31837" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="414.7" stroke-dashoffset="165" transform="rotate(-90 80 80)"/></svg>
+        <div class="ch2-ring-center"><div class="ch2-ring-steps">28,400</div><div class="ch2-ring-label">steps total</div></div>
+      </div>
+      <div class="ch2-ring-goal">Goal: 35,000 steps</div>
+    </div>
+    <div class="ch2-hero-bottom"><div class="ch2-challenge-name">Domino's 7-Day Step Challenge</div><div class="ch2-chips"><div class="ch2-chip">7 days</div><div class="ch2-chip">10,932 joined</div><div class="ch2-chip gold">2 days left</div></div></div>
+  </div>
+  <div class="ch2-body">
+    <div class="ch2-rank-spotlight"><div class="ch2-rank-main"><div class="ch2-rank-eyebrow">Your Rank</div><div class="ch2-rank-number">#47</div><div class="ch2-rank-sub">Top 1% of 10,932</div></div><div class="ch2-rank-divider"></div><div class="ch2-rank-right"><div class="ch2-stat-val">5</div><div class="ch2-stat-label">Days done</div><div style="height:10px;"></div><div class="ch2-stat-val" style="color:var(--gold);">5</div><div class="ch2-stat-label">Day streak</div></div></div>
+    <div class="ch2-stat-row"><div class="ch2-stat-card"><div class="ch2-sv">10.9K</div><div class="ch2-sl">Members</div></div><div class="ch2-stat-card"><div class="ch2-sv">7</div><div class="ch2-sl">Days</div></div><div class="ch2-stat-card"><div class="ch2-sv">35K</div><div class="ch2-sl">Goal</div></div><div class="ch2-stat-card"><div class="ch2-sv">100</div><div class="ch2-sl">Win Prize</div></div></div>
+    <div class="ch2-reward-card"><div class="ch2-reward-badge">🍕</div><div><div class="ch2-reward-eyebrow">Top Reward</div><div class="ch2-reward-title">Domino's Smallie Pizza</div><div class="ch2-reward-sub">No points. No tokens. A real pizza.</div></div></div>
+    <button class="ch2-cta-btn">Track Today's Steps</button>
+  </div>`,
+
+  join: () => `<div class="join-wrap">
+    <div class="join-check">✓</div><h2>YOU'RE IN!</h2>
+    <div class="sub">You've joined the Domino's 7-Day Step Challenge. Steps count from midnight.</div>
+    <div class="detail-list" style="width:100%;margin-bottom:20px;">
+      <div class="detail-row"><span class="dl">Challenge</span><span class="dr">35,000 steps / 7 days</span></div>
+      <div class="detail-row"><span class="dl">Starts</span><span class="dr">Today, Midnight</span></div>
+      <div class="detail-row"><span class="dl">Reward</span><span class="dr">Smallie Pizza, Domino's</span></div>
+    </div>
+    <button class="cta-btn" style="background:var(--gold);color:#0D0D0D;margin-bottom:12px;">START TRACKING</button>
+  </div>`,
+
+  tracking: () => `<div class="tracking-content-h">
+    <div class="tracking-pill-h"><div class="tracking-dot-h"></div><div class="tracking-text-h">TRACKING</div></div>
+    <div class="goal-pill-h"><span class="gpl">Goal</span><span class="gpv">35K STEPS</span></div>
+    <div class="dur-label">DURATION</div>
+    <div class="dur-time" id="timer-display">00:00:00</div>
+    <div class="ring-container-h">
+      <svg class="ring-svg-h" viewBox="0 0 240 240"><circle class="ring-bg-h" cx="120" cy="120" r="110"></circle><circle class="ring-prog-h" id="ringProgress" cx="120" cy="120" r="110"></circle></svg>
+      <div class="steps-content-h"><div class="steps-lbl">STEPS</div><div class="steps-num" id="step-display">0</div><div class="steps-of-goal-h">target: 35,000</div></div>
+    </div>
+    <div class="stats-row-h">
+      <div class="stat-pill-h"><span class="stat-icon-h">◷</span><span class="stat-val" id="speed-display">0.0</span><span class="stat-unit-h">km/h</span></div>
+      <div class="stat-pill-h"><span class="stat-icon-h">↔</span><span class="stat-val" id="dist-display">0.0</span><span class="stat-unit-h">km</span></div>
+    </div>
+    <button class="pause-btn-h" id="startTrackingBtn"><span id="startBtnIcon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></span><span id="startBtnLabel">Pause</span></button>
+    <button class="ff-btn-h" id="fastForwardBtn" style="border-color:rgba(212,168,67,0.3);color:var(--gold);">Fast Forward to Day 7 Complete</button>
+  </div>`,
+
+  leaderboard: () => `<div style="padding:0 20px;">
+    <div class="lb-hero"><div class="lt">DOMINO'S PIZZA, 7 DAYS</div><div class="ls">Walk 35,000 Steps, First 100 win, 10,932 members</div></div>
+    <div class="tab-row"><div class="tab">CHALLENGE</div><div class="tab active">LEADERBOARD</div><div class="tab">MEMBERS</div></div>
+    <div class="lb-list">
+      <div class="lb-row"><div class="lb-rank">1</div><div class="lb-av gold">A</div><div class="lb-name">Adaeze O.</div><div class="lb-steps">38,210<span class="sub">steps</span></div></div>
+      <div class="lb-row"><div class="lb-rank">2</div><div class="lb-av silver">K</div><div class="lb-name">Kunle A.</div><div class="lb-steps">37,500<span class="sub">steps</span></div></div>
+      <div class="lb-row"><div class="lb-rank">3</div><div class="lb-av bronze">T</div><div class="lb-name">Temi B.</div><div class="lb-steps">36,800<span class="sub">steps</span></div></div>
+      <div class="lb-row you"><div class="lb-rank" style="color:var(--gold);">47</div><div class="lb-av gold">V</div><div class="lb-name">Victor <span class="you-tag">YOU</span></div><div class="lb-steps">35,241<span class="sub">steps</span></div></div>
+    </div>
+    <div style="background:rgba(0,100,145,0.12);border:1px solid rgba(0,100,145,0.4);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:12px;color:var(--body);line-height:1.5;">You are ranked 47, inside the top 100. Your Smallie Pizza is secured.</div>
+    <button class="cta-btn" style="background:var(--gold);color:#0D0D0D;">CHALLENGE COMPLETE. CLAIM REWARD</button>
+  </div>`,
+
+  completion: () => `<div class="completion-wrap">
+    <div class="trophy-anim">🏆</div>
+    <div class="clbl">CHALLENGE COMPLETE</div>
+    <h2>TOP 100<br/>OUT OF 10,932</h2>
+    <div class="cnote">You walked 35,241 steps over 7 days and finished #47. Your Domino's Smallie Pizza is ready.</div>
+    <div class="comp-grid">
+      <div class="comp-block"><div class="cn">#47</div><div class="cl">FINAL RANK</div></div>
+      <div class="comp-block"><div class="cn">35,241</div><div class="cl">TOTAL STEPS</div></div>
+      <div class="comp-block"><div class="cn">7</div><div class="cl">DAYS DONE</div></div>
+      <div class="comp-block"><div class="cn">~25 KM</div><div class="cl">DISTANCE</div></div>
+    </div>
+    <button class="cta-btn" style="background:var(--gold);color:#0D0D0D;">VIEW MY REWARD</button>
+  </div>`,
+
+  rewards: () => `<div style="padding:16px 20px 0;">
+    <div style="font-size:22px;font-weight:900;color:var(--cream);margin-bottom:16px;">Reward</div>
+    <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:16px;">
+      <div style="flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:800;color:var(--gold);position:relative;">My Rewards<div style="position:absolute;bottom:-1px;left:15%;right:15%;height:2px;background:var(--gold);border-radius:2px;"></div></div>
+      <div style="flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:700;color:var(--muted);">Available</div>
+      <div style="flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:700;color:var(--muted);">History</div>
+    </div>
+  </div>
+  <div style="margin:0 20px 12px;background:var(--card);border:1px solid rgba(212,168,67,0.3);border-radius:16px;padding:16px;">
+    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;">
+      <div style="width:50px;height:50px;border-radius:12px;background:#003A5C;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:900;color:white;text-align:center;line-height:1.2;">DOMINOS</div>
+      <div style="flex:1;"><div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:4px;">BRAND REWARD</div><div style="font-size:17px;font-weight:900;color:var(--cream);margin-bottom:6px;">Smallie Pizza</div><span style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:#4ADE80;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 9px;border-radius:20px;">EARNED</span></div>
+    </div>
+    <button style="width:100%;height:46px;background:var(--gold);border:none;border-radius:12px;font-family:inherit;font-weight:900;font-size:15px;color:#0D0D0D;cursor:pointer;">Claim Pizza</button>
+  </div>
+  <div style="margin:0 20px 12px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;opacity:0.38;pointer-events:none;position:relative;">
+    <div style="position:absolute;top:10px;right:12px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:3px 9px;font-size:10px;font-weight:800;color:var(--muted);letter-spacing:1px;">🔒 LOCKED</div>
+    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;">
+      <div style="width:50px;height:50px;border-radius:12px;background:#D32011;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:900;color:white;text-align:center;line-height:1.2;letter-spacing:0.3px;">CHICKEN<br/>REPUBLIC</div>
+      <div style="flex:1;"><div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:4px;">BRAND REWARD</div><div style="font-size:17px;font-weight:900;color:var(--muted);margin-bottom:6px;line-height:1.2;">Free Meal &#8212; Any Combo</div><span style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--muted);font-size:10px;font-weight:800;letter-spacing:0.8px;padding:3px 9px;border-radius:20px;">NOT EARNED</span></div>
+    </div>
+    <div style="width:100%;height:46px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--muted);">Join Chicken Republic Challenge to Unlock</div>
+  </div>
+  <div style="margin:0 20px 12px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;opacity:0.38;pointer-events:none;position:relative;">
+    <div style="position:absolute;top:10px;right:12px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:3px 9px;font-size:10px;font-weight:800;color:var(--muted);letter-spacing:1px;">🔒 LOCKED</div>
+    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:12px;">
+      <div style="width:50px;height:50px;border-radius:12px;background:#FFCC00;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:900;color:#000;text-align:center;line-height:1.2;">MTN</div>
+      <div style="flex:1;"><div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:4px;">DATA REWARD</div><div style="font-size:17px;font-weight:900;color:var(--muted);margin-bottom:6px;line-height:1.2;">1GB Data Bundle</div><span style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--muted);font-size:10px;font-weight:800;letter-spacing:0.8px;padding:3px 9px;border-radius:20px;">NOT EARNED</span></div>
+    </div>
+    <div style="width:100%;height:46px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--muted);">Join MTN Challenge to Unlock</div>
+  </div>
+  <div style="margin:0 20px 12px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;opacity:0.38;pointer-events:none;position:relative;">
+    <div style="position:absolute;top:10px;right:12px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:3px 9px;font-size:10px;font-weight:800;color:var(--muted);letter-spacing:1px;">🔒 LOCKED</div>
+    <div style="display:flex;align-items:flex-start;gap:14px;">
+      <div style="width:50px;height:50px;border-radius:12px;background:#0E4B6E;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;font-weight:900;color:white;text-align:center;line-height:1.3;letter-spacing:0.3px;">PIGGY<br/><span style="color:#4ADE80;">VEST</span></div>
+      <div style="flex:1;"><div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:4px;">SAVINGS REWARD</div><div style="font-size:17px;font-weight:900;color:var(--muted);margin-bottom:6px;line-height:1.2;">&#8358;5,000 Savings Boost</div><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:13px;font-weight:800;color:var(--muted);">&#9733; 500 pts</span><span style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--muted);font-size:10px;font-weight:800;letter-spacing:0.8px;padding:3px 9px;border-radius:20px;">160 PTS AWAY</span></div></div>
+    </div>
+    <div style="margin-top:12px;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;"><div style="width:68%;height:100%;background:rgba(255,255,255,0.15);border-radius:2px;"></div></div>
+    <div style="margin-top:12px;width:100%;height:46px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--muted);">Join PiggyVest Challenge to Unlock</div>
+  </div>`,
+
+  reward_detail: () => `<div class="reward-detail-hero" style="background:linear-gradient(150deg,#006491 0%,#003A5C 100%);">
+    <div class="bp">DOMINOS PIZZA</div><div class="rn">SMALLIE PIZZA<br/>ON US</div>
+  </div>
+  <div style="padding:14px 20px 0;">
+    <div class="detail-list" style="margin-bottom:14px;">
+      <div class="detail-row"><span class="dl">Your Rank</span><span class="dr">#47 of 10,932</span></div>
+      <div class="detail-row"><span class="dl">Reward Code</span><span class="dr">DM-47</span></div>
+      <div class="detail-row"><span class="dl">Valid At</span><span class="dr">Any Domino's Outlet</span></div>
+      <div class="detail-row"><span class="dl">Expires</span><span class="dr">10 mins after reveal</span></div>
+    </div>
+    <div class="warning-box" style="margin-bottom:16px;"><div class="wi">⚠️</div><div class="wt">Only tap <strong>Reveal QR Code</strong> when you are at a Domino's outlet or ready to order delivery. Expires 10 minutes after reveal. One-time use.</div></div>
+    <button class="cta-btn" style="background:var(--gold);color:#0D0D0D;">REVEAL QR CODE</button>
+  </div>`,
+
+  battle: () => `<div class="battle-sponsor-bar">
+    <div><div class="slbl">SPONSORED BY</div><div class="sname">Access Bank</div></div>
+    <div style="width:28px;height:28px;border-radius:6px;overflow:hidden;">${LOGOS.access_bank}</div>
+    <div class="live-badge" style="margin-left:auto;"><div class="live-dot"></div>LIVE NOW</div>
+  </div>
+  <div class="battle-title"><h2>REA VS NNPC</h2><div class="bsub">Rural Electrification Agency vs Nigerian National Petroleum Corporation, 30-day corporate wellness challenge</div></div>
+  <div class="your-contrib"><div class="yav">V</div><div class="yt"><div class="ytop">YOUR CONTRIBUTION</div><div class="ybot">You contributed <strong>18,420 steps</strong> to REA. Ranked <strong>#3 on your team</strong>.</div></div></div>
+  <div class="vs-panel">
+    <div class="vs-teams-row"><div class="team-block"><div class="team-logo-big">${LOGOS.rea}</div><div class="tname">REA</div><div class="tmembers">247 members</div></div><div class="vs-txt">VS</div><div class="team-block"><div class="team-logo-big">${LOGOS.nnpc}</div><div class="tname">NNPC</div><div class="tmembers">198 members</div></div></div>
+    <div class="step-counts-row"><div class="scb"><div class="sn" style="color:var(--rea-col);">1.84M</div><div class="sl">STEPS</div></div><div class="leading-pill">REA LEADING</div><div class="scb"><div class="sn" style="color:var(--nnpc-col);">1.64M</div><div class="sl">STEPS</div></div></div>
+    <div class="battle-bar-wrap"><div class="battle-bar"><div class="bf"></div></div></div>
+  </div>
+  <div class="prize-block"><div class="plbl">WINNING TEAM RECEIVES</div><div class="prize-item"><span class="pck">✓</span><span>Extra paid day off for every team member</span></div><div class="prize-item"><span class="pck">✓</span><span>Team wellness dinner</span></div></div>
+  <div class="battle-meta-row"><div class="bm-block"><div class="bnum">3</div><div class="blbl">DAYS LEFT</div></div><div class="bm-block"><div class="bnum">445</div><div class="blbl">TOTAL PLAYERS</div></div></div>
+  <div class="battle-lb">
+    <div class="blh"><span class="blt">TOP CONTRIBUTORS</span><span class="bla">VIEW ALL</span></div>
+    <div class="battle-lb-row"><span class="battle-pill rea">REA</span><div class="blr-name">Engr. Bola A.<div class="blrsub">Director, REA</div></div><div class="blr-steps">18,420</div></div>
+    <div class="battle-lb-row"><span class="battle-pill nnpc">NNPC</span><div class="blr-name">Mrs. Hauwa M.<div class="blrsub">NNPC HQ</div></div><div class="blr-steps">17,985</div></div>
+    <div class="battle-lb-row"><span class="battle-pill rea">REA</span><div class="blr-name">Charles O.<div class="blrsub">Ops Lead, REA</div></div><div class="blr-steps">16,200</div></div>
+  </div>`,
+
+  brand_dashboard: () => `<div style="padding:0 20px;">
+    <div style="padding:8px 0 14px;"><div style="font-size:10px;letter-spacing:2px;color:var(--muted);font-weight:700;">BRAND DASHBOARD</div><div style="display:flex;align-items:center;gap:10px;margin-top:6px;"><div style="width:32px;height:32px;border-radius:8px;overflow:hidden;">${LOGOS.dominos}</div><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--cream);letter-spacing:1px;">DOMINO'S PIZZA</div><div style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:9px;color:#4ADE80;font-weight:700;letter-spacing:1px;"><div style="width:6px;height:6px;background:#4ADE80;border-radius:50%;animation:live-pulse 1.5s infinite;"></div>LIVE</div></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div class="stat-block"><div class="icon">🚶</div><div class="val" style="font-size:22px;">2.3M</div><div class="slbl">STEPS LOGGED</div></div>
+      <div class="stat-block"><div class="icon">👥</div><div class="val" style="font-size:22px;">10,932</div><div class="slbl">PARTICIPANTS</div></div>
+      <div class="stat-block"><div class="icon">🔥</div><div class="val" style="font-size:22px;">9,814</div><div class="slbl">ACTIVE TODAY</div></div>
+      <div class="stat-block"><div class="icon">🏆</div><div class="val" style="font-size:22px;">87</div><div class="slbl">REWARDS CLAIMED</div></div>
+    </div>
+    <div class="card" style="margin-bottom:10px;"><div class="lbl">DAILY STEPS, LAST 7 DAYS</div><div style="display:flex;align-items:flex-end;gap:6px;height:60px;margin-top:8px;">${[45,62,78,55,82,91,88].map((h,i)=>`<div style="flex:1;background:${i===6?'#006491':'rgba(0,100,145,0.3)'};border-radius:4px 4px 0 0;height:${h}%;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;"><span style="font-size:8px;color:rgba(255,255,255,0.5);">${['M','T','W','T','F','S','S'][i]}</span></div>`).join('')}</div></div>
+    <div class="card"><div class="lbl">CAMPAIGN PERFORMANCE</div><div class="detail-row" style="padding:10px 0;"><span class="dl">AVG DAILY ENGAGEMENT</span><span class="dr" style="color:#4ADE80;">94.2%</span></div><div class="detail-row" style="padding:10px 0;"><span class="dl">COST PER ACTIVE USER</span><span class="dr">NGN 47</span></div><div class="detail-row" style="padding:10px 0;border-bottom:none;"><span class="dl">TOTAL KM WALKED FOR BRAND</span><span class="dr">~1,640 km</span></div></div>
+  </div>`,
+
+  allbattles: () => `<div class="all-battles-hdr"><div class="abt">LIVE ON DOER</div><h2>All Active Battles</h2><div class="scale-line">This is what Doer looks like when we succeed.</div></div>
+  ${[
+    {t1:'REA',l1:'rea',t2:'NNPC',l2:'nnpc',spl:'ACCESS BANK',sl:'access_bank',lead:'REA LEADING, 1.84M vs 1.64M',days:'3 days left'},
+    {t1:'ANDELA',l1:'andela',t2:'FLUTTERWAVE',l2:'flutterwave',spl:'MTN',sl:'mtn',lead:'FLUTTERWAVE LEADING, 2.1M vs 1.9M',days:'12 days left'},
+    {t1:'GOOGLE NG',l1:'google',t2:'MICROSOFT NG',l2:'microsoft',spl:'SPOTIFY',sl:'spotify',lead:'GOOGLE LEADING, 3.2M vs 2.8M',days:'18 days left'}
+  ].map(b=>`<div class="battle-card-item">
+    <div class="bc-top"><div class="bc-teams-logos"><div class="bc-logo">${LOGOS[b.l1]}</div><div class="bc-vs">VS</div><div class="bc-logo">${LOGOS[b.l2]}</div><div class="bc-teams-names">${b.t1} vs ${b.t2}</div></div><div class="bc-live">LIVE</div></div>
+    <div class="bc-sponsor"><div class="spl">Sponsored by</div><div class="bc-sponsor-logo"><div class="bc-sponsor-icon">${LOGOS[b.sl]}</div><div class="bc-sponsor-name">${b.spl}</div></div></div>
+    <div class="bc-score"><span class="bcs-lead">${b.lead}</span><span class="bcs-days">${b.days}</span></div>
+  </div>`).join('')}`
+};
+
+render();
+</script>
+</body>
+</html>
